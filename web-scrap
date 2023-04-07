@@ -1,0 +1,45 @@
+from requests_html import HTMLSession
+import json
+
+def get_links(url):
+    links =[]
+    for l in range(0, 40):
+        session = HTMLSession()
+        r = session.get(url+str(l))
+        r.html.render(sleep=3, scrolldown=5)
+        el= r.html.find('.serp-item__title')
+        for i in el:
+            links.append(i.attrs['href'])
+    return links
+
+def vacancy(links):
+    data = {}
+    h = 1
+    for url in links:
+        session = HTMLSession()
+        r = session.get(url)
+        Ops = r.html.find('.vacancy-section', first=True).text
+        if 'Django' in Ops or 'django' in Ops or 'Flask' in Ops:
+            name = r.html.find('.bloko-header-section-1', first=True).text
+            salary = r.html.find('.bloko-header-section-2', first=True).text
+            company = r.html.find('.vacancy-company-name', first=True).text
+            location = 'Город не указан'
+            try:
+                location = r.html.find('p[data-qa="vacancy-view-location"]', first=True).text
+            except AttributeError:
+                pass
+
+            data[h] = {
+                'Вакансия': name,
+                'Ссылка': url,
+                'Зарплата': salary,
+                'Название компании': company,
+                'Город': location
+            }
+            h += 1
+    return data
+
+spb_msc = get_links('https://spb.hh.ru/search/vacancy?text=python&area=1&area=2&page=')
+res=vacancy(spb_msc)
+with open('vacancy.json', 'w', encoding='utf-8') as f:
+    json.dump(res, f, ensure_ascii=False, indent=4)
